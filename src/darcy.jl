@@ -54,9 +54,9 @@
 # We start the driver loading the Gridap package and constructing the geometrical model. We generate a $100\times100$ structured mesh for the domain $(0,1)^2$.
 
 using Gridap
-domain = (0,1,0,1)
-partition = (100,100)
-model = CartesianDiscreteModel(domain,partition)
+domain = (0, 1, 0, 1)
+partition = (100, 100)
+model = CartesianDiscreteModel(domain, partition)
 
 # ## Multi-field FE spaces
 #
@@ -64,18 +64,21 @@ model = CartesianDiscreteModel(domain,partition)
 
 order = 1
 
-V = FESpace(model, ReferenceFE(raviart_thomas,Float64,order),
-      conformity=:HDiv, dirichlet_tags=[5,6])
+V = FESpace(
+    model,
+    ReferenceFE(raviart_thomas, Float64, order),
+    conformity = :HDiv,
+    dirichlet_tags = [5, 6],
+)
 
-Q = FESpace(model, ReferenceFE(lagrangian,Float64,order),
-      conformity=:L2)
+Q = FESpace(model, ReferenceFE(lagrangian, Float64, order), conformity = :L2)
 
 # Note that the Dirichlet boundary for the flux are the bottom and top sides of the squared domain (identified with the boundary tags 5, and 6 respectively), whereas no Dirichlet data can be imposed on the pressure space. We select `conformity=:HDiv` for the flux (i.e., shape functions with $H^1(\mathrm{div};\Omega)$ regularity) and `conformity=:L2` for the pressure (i.e. discontinuous shape functions).
 #
 # From these objects, we construct the trial spaces. Note that we impose homogeneous boundary conditions for the flux.
 
-uD = VectorValue(0.0,0.0)
-U = TrialFESpace(V,uD)
+uD = VectorValue(0.0, 0.0)
+U = TrialFESpace(V, uD)
 P = TrialFESpace(Q)
 
 # When the singe-field spaces have been designed, the multi-field test and trial spaces are expressed as arrays of single-field ones in a natural way.
@@ -89,33 +92,33 @@ X = MultiFieldFESpace([U, P])
 
 trian = Triangulation(model)
 degree = 2
-dΩ = Measure(trian,degree)
+dΩ = Measure(trian, degree)
 
 # In order to integrate the Neumann boundary condition, we only need to build an integration mesh for the right side of the domain (which is the only part of $\Gamma_{\rm N}$, where the Neumann function $h$ is different from zero). Within the model, the right side of $\Omega$ is identified with the boundary tag 8. Using this identifier, we extract the corresponding surface triangulation and create the required Lebesge measure.
 
-neumanntags = [8,]
-btrian = BoundaryTriangulation(model,tags=neumanntags)
-dΓ = Measure(btrian,degree)
+neumanntags = [8]
+btrian = BoundaryTriangulation(model, tags = neumanntags)
+dΓ = Measure(btrian, degree)
 
 # ## Weak form
 #
 # We start by defining the permeability tensors inverses commented above.
 
-const kinv1 = TensorValue(1.0,0.0,0.0,1.0)
-const kinv2 = TensorValue(100.0,90.0,90.0,100.0)
-function σ(x,u)
-   if ((abs(x[1]-0.5) <= 0.1) && (abs(x[2]-0.5) <= 0.1))
-      return kinv2⋅u
-   else
-      return kinv1⋅u
-   end
+const kinv1 = TensorValue(1.0, 0.0, 0.0, 1.0)
+const kinv2 = TensorValue(100.0, 90.0, 90.0, 100.0)
+function σ(x, u)
+    if ((abs(x[1] - 0.5) <= 0.1) && (abs(x[2] - 0.5) <= 0.1))
+        return kinv2 ⋅ u
+    else
+        return kinv1 ⋅ u
+    end
 end
 
 # With this definition, we can express the integrand of the bilinear form as follows.
 
 px = get_physical_coordinate(trian)
 
-a((u,p), (v,q)) = ∫(v⋅(σ∘(px,u)) - (∇⋅v)*p + q*(∇⋅u))dΩ
+a((u, p), (v, q)) = ∫(v ⋅ (σ ∘ (px, u)) - (∇ ⋅ v) * p + q * (∇ ⋅ u))dΩ
 
 # The arguments `(u,p)` and `(v,q)` of function `a` represent a trial and a test function, respectively. Notice that we unpack the functions directly from the multi-field test and trial spaces `X` and `Y`. E.g., `v` represents a test function for the flux and `q` for the pressure, which correspond to the first and second entries of `Y`. From the single-field functions, we write the different terms of the bilinear form as we have done in previous tutorials.
 #
@@ -124,19 +127,23 @@ a((u,p), (v,q)) = ∫(v⋅(σ∘(px,u)) - (∇⋅v)*p + q*(∇⋅u))dΩ
 nb = get_normal_vector(btrian)
 h = -1.0
 
-b((v,q)) = ∫((v⋅nb)*h)dΓ
+b((v, q)) = ∫((v ⋅ nb) * h)dΓ
 
 # ## Multi-field FE problem
 #
 # Finally, we can assemble the FE problem and solve it. Note that we build the `AffineFEOperator` object using the multi-field trial and test spaces `Y` and `X`.
 
-op = AffineFEOperator(a,b,X,Y)
+op = AffineFEOperator(a, b, X, Y)
 xh = solve(op)
-uh, ph = xh
+uh, ph = xh;
 
 # Since this is a multi-field example, the `solve` function returns a multi-field solution `xh`, which can be unpacked in order to finally recover each field of the problem. The resulting single-field objects can be visualized as in previous tutorials (see next figure).
 
-writevtk(trian,"darcyresults",cellfields=["uh"=>uh,"ph"=>ph])
+writevtk(
+    trian,
+    "outputs/$(basename(@__FILE__))_darcyresults",
+    cellfields = ["uh" => uh, "ph" => ph],
+);
 
 # ![](../assets/darcy/darcy_results.png)
 #

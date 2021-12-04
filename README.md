@@ -62,3 +62,12 @@ In order to give credit to the `Gridap` contributors, we simply ask you to cite 
 
 Please, contact the project administrators, [Santiago Badia](mailto:santiago.badia@monash.edu) and [Francesc Verdugo](mailto:fverdugo@cimne.upc.edu), for further questions about licenses and terms of use.
 
+
+
+# Notes
+
+Conversion to pdf requires (1) a conversion to LaTeX, then a conversion to pdf. Jupyter will not directly convert to pdf because of relative paths.
+
+
+
+

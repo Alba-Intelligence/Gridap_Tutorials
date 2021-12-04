@@ -34,7 +34,7 @@ f(x) = 0
 # We also need to define the gradient of $u$ since we will compute the $H^1$ error norm later. In that case, the gradient is simply defined as
 #
 
-∇u(x) = VectorValue(1,1)
+∇u(x) = VectorValue(1, 1)
 
 # Note that we have used the constructor `VectorValue` to build the vector that represents the gradient. However, we still need a final trick. We need to tell the Gridap library that the gradient of the function `u` is available in the function `∇u` (at this moment `u` and `∇u` are two standard Julia functions without any connection between them). This is done by adding an extra method to the function `gradient` (aka `∇`) defined in Gridap:
 
@@ -51,22 +51,22 @@ import Gridap: ∇
 #
 # In order to discretize the geometry of the unit square, we use the Cartesian mesh generator available in Gridap:
 
-domain = (0,1,0,1)
-partition = (4,4)
-model = CartesianDiscreteModel(domain,partition)
+domain = (0, 1, 0, 1)
+partition = (4, 4)
+model = CartesianDiscreteModel(domain, partition)
 
 # The type `CartesianDiscreteModel` is a concrete type that inherits from `DiscreteModel`, which is specifically designed for building Cartesian meshes. The `CartesianDiscreteModel` constructor takes a tuple containing limits of the box we want to discretize  plus a tuple with the number of cells to be generated in each direction (here 4 by 4 cells). Note that the `CaresianDiscreteModel` is implemented for arbitrary dimensions. For instance, the following lines build a `CartesianDiscreteModel`  for the unit cube $(0,1)^3$ with 4 cells per direction
 
-domain3d = (0,1,0,1,0,1)
-partition3d = (4,4,4)
-model3d = CartesianDiscreteModel(domain3d,partition3d)
+domain3d = (0, 1, 0, 1, 0, 1)
+partition3d = (4, 4, 4)
+model3d = CartesianDiscreteModel(domain3d, partition3d)
 
 # You could also generate a mesh for the unit tesseract $(0,1)^4$ (i.e., the unit cube in 4D). Look how the 2D and 3D models are built and just follow the sequence.
 #
 
 # Let us return to the 2D `CartesianDiscreteModel` that we have already constructed. You can inspect it by writing it into vtk format. Note that you can also print a 3D model, but not a 4D one. In the future, it would be cool to generate a movie from a 4D model, but this functionality is not yet implemented.
 
-writevtk(model,"model")
+writevtk(model, "outputs/$(basename(@__FILE__))_model");
 
 
 # If you open the generated files, you will see that the boundary vertices and facets are identified with the name "boundary". This is just what we need to impose the Dirichlet boundary conditions in this example.
@@ -87,18 +87,18 @@ writevtk(model,"model")
 # We compute a FE approximation of the Poisson problem above by following the steps detailed in the previous tutorial:
 
 order = 1
-reffe = ReferenceFE(lagrangian,Float64,order)
-V0 = TestFESpace(model,reffe,conformity=:H1,dirichlet_tags="boundary")
-U = TrialFESpace(V0,u)
+reffe = ReferenceFE(lagrangian, Float64, order)
+V0 = TestFESpace(model, reffe, conformity = :H1, dirichlet_tags = "boundary")
+U = TrialFESpace(V0, u)
 
 degree = 2
 Ω = Triangulation(model)
-dΩ = Measure(Ω,degree)
+dΩ = Measure(Ω, degree)
 
-a(u,v) = ∫( ∇(v)⊙∇(u) )*dΩ
-b(v) = ∫( v*f )*dΩ
+a(u, v) = ∫(∇(v) ⊙ ∇(u)) * dΩ
+b(v) = ∫(v * f) * dΩ
 
-op = AffineFEOperator(a,b,U,V0)
+op = AffineFEOperator(a, b, U, V0)
 
 uh = solve(op)
 
@@ -113,7 +113,7 @@ e = u - uh
 
 # Once the error is defined, you can, e.g., visualize it.
 
-writevtk(Ω,"error",cellfields=["e" => e])
+writevtk(Ω, "outputs/$(basename(@__FILE__))_error", cellfields = ["e" => e]);
 
 # This generates a file called `error.vtu`. Open it with Paraview to check that the error is of the order of the machine precision.
 #
@@ -128,8 +128,8 @@ writevtk(Ω,"error",cellfields=["e" => e])
 #
 # In order to compute these norms, we use again the `∫` function and the integration measure `dΩ`, namely
 
-el2 = sqrt(sum( ∫( e*e )*dΩ ))
-eh1 = sqrt(sum( ∫( e*e + ∇(e)⋅∇(e) )*dΩ ))
+el2 = sqrt(sum(∫(e * e) * dΩ))
+eh1 = sqrt(sum(∫(e * e + ∇(e) ⋅ ∇(e)) * dΩ))
 
 # The expression `∫( fun )*dΩ` returns an object storing the cell contributions of the integral of the given function `fun`.
 #  To end up with the desired error norms, one has to sum these contributions and take the square root. You can check that the computed error norms are close to machine precision (as one would expect).
@@ -145,84 +145,89 @@ tol = 1.e-10
 
 # Here, we define the manufactured functions
 p = 3
-u(x) = x[1]^p+x[2]^p
-∇u(x) = VectorValue(p*x[1]^(p-1),p*x[2]^(p-1))
-f(x) = -p*(p-1)*(x[1]^(p-2)+x[2]^(p-2))
+u(x) = x[1]^p + x[2]^p
+∇u(x) = VectorValue(p * x[1]^(p - 1), p * x[2]^(p - 1))
+f(x) = -p * (p - 1) * (x[1]^(p - 2) + x[2]^(p - 2))
 
 # Since we have redefined the valiables `u`, `∇u`, and `f`, we need to execute these lines again
 
 ∇(::typeof(u)) = ∇u
-b(v) = ∫( v*f )*dΩ
+b(v) = ∫(v * f) * dΩ
 
 # In order to perform the convergence test, we write in a function all the code needed to perform a single computation and measure its error. The input of this function is the number of cells in each direction and the interpolation order. The output is the computed $L^2$ and $H^1$ error norms.
 
-function run(n,k)
+function run(n, k)
 
-  domain = (0,1,0,1)
-  partition = (n,n)
-  model = CartesianDiscreteModel(domain,partition)
+    domain = (0, 1, 0, 1)
+    partition = (n, n)
+    model = CartesianDiscreteModel(domain, partition)
 
-  reffe = ReferenceFE(lagrangian,Float64,k)
-  V0 = TestFESpace(model,reffe,conformity=:H1,dirichlet_tags="boundary")
-  U = TrialFESpace(V0,u)
+    reffe = ReferenceFE(lagrangian, Float64, k)
+    V0 = TestFESpace(model, reffe, conformity = :H1, dirichlet_tags = "boundary")
+    U = TrialFESpace(V0, u)
 
-  degree = 2*p
-  Ω = Triangulation(model)
-  dΩ = Measure(Ω,degree)
+    degree = 2 * p
+    Ω = Triangulation(model)
+    dΩ = Measure(Ω, degree)
 
-  a(u,v) = ∫( ∇(v)⊙∇(u) )*dΩ
-  b(v) = ∫( v*f )*dΩ
+    a(u, v) = ∫(∇(v) ⊙ ∇(u)) * dΩ
+    b(v) = ∫(v * f) * dΩ
 
-  op = AffineFEOperator(a,b,U,V0)
+    op = AffineFEOperator(a, b, U, V0)
 
-  uh = solve(op)
+    uh = solve(op)
 
-  e = u - uh
+    e = u - uh
 
-  el2 = sqrt(sum( ∫( e*e )*dΩ ))
-  eh1 = sqrt(sum( ∫( e*e + ∇(e)⋅∇(e) )*dΩ ))
+    el2 = sqrt(sum(∫(e * e) * dΩ))
+    eh1 = sqrt(sum(∫(e * e + ∇(e) ⋅ ∇(e)) * dΩ))
 
-  (el2, eh1)
+    (el2, eh1)
 
 end
 
 # The following function does the convergence test. It takes a vector of integers (representing the number of cells per direction in each computation) plus the interpolation order. It returns the $L^2$ and $H^1$ error norms for each computation as well as the corresponding cell size.
 
-function conv_test(ns,k)
+function conv_test(ns, k)
 
-  el2s = Float64[]
-  eh1s = Float64[]
-  hs = Float64[]
+    el2s = Float64[]
+    eh1s = Float64[]
+    hs = Float64[]
 
-  for n in ns
+    for n in ns
 
-    el2, eh1 = run(n,k)
-    h = 1.0/n
+        el2, eh1 = run(n, k)
+        h = 1.0 / n
 
-    push!(el2s,el2)
-    push!(eh1s,eh1)
-    push!(hs,h)
+        push!(el2s, el2)
+        push!(eh1s, eh1)
+        push!(hs, h)
 
-  end
+    end
 
-  (el2s, eh1s, hs)
+    (el2s, eh1s, hs)
 
 end
 
 # We are ready to perform the test! We consider several mesh sizes and interpolation order $k=1$ and $k=2$ (for $k=3$ the error will be close to machine precision, as before, except if you change the value of $p$ above).
 
-el2s1, eh1s1, hs = conv_test([8,16,32,64,128],1);
-el2s2, eh1s2, hs = conv_test([8,16,32,64,128],2);
+el2s1, eh1s1, hs = conv_test([8, 16, 32, 64, 128], 1);
+el2s2, eh1s2, hs = conv_test([8, 16, 32, 64, 128], 2);
 
 # With the generated data, we do the classical convergence plot.
 
 using Plots
 
-plot(hs,[el2s1 eh1s1 el2s2 eh1s2],
-    xaxis=:log, yaxis=:log,
-    label=["L2 k=1" "H1 k=1" "L2 k=2" "H1 k=2"],
-    shape=:auto,
-    xlabel="h",ylabel="error norm")
+plot(
+    hs,
+    [el2s1 eh1s1 el2s2 eh1s2],
+    xaxis = :log,
+    yaxis = :log,
+    label = ["L2 k=1" "H1 k=1" "L2 k=2" "H1 k=2"],
+    shape = :auto,
+    xlabel = "h",
+    ylabel = "error norm",
+)
 
 #src savefig("conv.png")
 
@@ -232,22 +237,22 @@ plot(hs,[el2s1 eh1s1 el2s2 eh1s2],
 #
 # The generated curves make sense. For a given interpolation order it is observed that the convergence of the $H^1$ error is slower that $L^2$ one whereas increasing the order makes convergence faster both in $L^2$ and in $H^1$. However, in order to be more conclusive, we need to compute the slope of these lines. It can be done with this little function that internally uses a linear regression.
 
-function slope(hs,errors)
-  x = log10.(hs)
-  y = log10.(errors)
-  linreg = hcat(fill!(similar(x), 1), x) \ y
-  linreg[2]
+function slope(hs, errors)
+    x = log10.(hs)
+    y = log10.(errors)
+    linreg = hcat(fill!(similar(x), 1), x) \ y
+    linreg[2]
 end
 
 # The slopes for the $L^2$ error norm is computed as
 
-slope(hs,el2s1)
-slope(hs,el2s2)
+slope(hs, el2s1)
+slope(hs, el2s2)
 
 # and for the $H^1$ error norm as
 
-slope(hs,eh1s1)
-slope(hs,eh1s2)
+slope(hs, eh1s1)
+slope(hs, eh1s2)
 
 #md # If your run these lines in a notebook, you will see that
 #nb # As you can see,

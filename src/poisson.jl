@@ -54,7 +54,7 @@ model = DiscreteModelFromFile("../models/model.json")
 #
 # You can easily inspect the generated discrete model in [Paraview](https://www.paraview.org/) by writing it in `vtk` format.
 
-writevtk(model,"model")
+writevtk(model, "outputs/$(basename(@__FILE__))_model");
 
 # The previous line generates four different files `model_0.vtu`, `model_1.vtu`, `model_2.vtu`, and `model_3.vtu` containing the vertices, edges, faces, and cells present in the discrete model. Moreover, you can easily inspect which boundaries are defined within the model.
 #
@@ -67,25 +67,26 @@ writevtk(model,"model")
 # ![](../assets/poisson/fig_vertices_on_sides.png)
 #
 # That is, the boundary $\Gamma_{\rm B}$ (i.e., the walls of the circular hole) is called "circle" and the Dirichlet boundary $\Gamma_{\rm D}$ is called "sides" in the model. In addition, the walls of the triangular hole $\Gamma_{\rm G}$ and the walls of the square hole $\Gamma_{\rm Y}$ are identified in the model with the names "triangle" and "square" respectively. You can easily check this by opening the corresponding file in Paraview.
-#
+
+
 #
 # ## FE spaces
 #
 #  Once we have a discretization of the computational domain, the next step is to generate a discrete approximation of the finite element spaces $V_0$ and $U_g$ (i.e. the test and trial FE spaces) of the problem. To do so, first, we are going to build a discretization of $V_0$ as the standard Conforming Lagrangian FE space (with zero boundary conditions) associated with the discretization of the computational domain. The approximation of the FE space $V_0$ is built as follows:
 
 order = 1
-reffe = ReferenceFE(lagrangian,Float64,order)
-V0 = TestFESpace(model,reffe;conformity=:H1,dirichlet_tags="sides")
+reffe = ReferenceFE(lagrangian, Float64, order)
+V0 = TestFESpace(model, reffe; conformity = :H1, dirichlet_tags = "sides")
 
 # Here, we have used the `TestFESpace` constructor, which constructs a particular FE space (to be used as a test space) from a set of options described as positional and key-word arguments. The first positional argument is the model on top of which we want to build the space. The second positional argument contains information about the type of FE interpolation (the reference FE in this case). With `ReferenceFE(lagrangian,Float64,order)` We select a scalar-valued Lagrangian reference FE of order 1, where the value of the shape functions will be represented with  64-bit floating point numbers. With the key-word argument `conformity` we define the regularity of the interpolation at the boundaries of the cells in the mesh. Here, we use `conformity=:H1`, which means that the resulting interpolation space is a subset of $H^1(\Omega)$ (i.e., continuous shape functions). On the other hand, we pass the identifiers of the Dirichlet boundary via the `dirichlet_tags` argument. In this case, we mark as Dirichlet all objects of the discrete model identified with the `"sides"` tag. Since this is a test space, the corresponding shape functions vanishes at the Dirichlet boundary.
 #
 # Once the space $V_0$ is discretized in the code, we proceed with the approximation of the trial space $U_g$.
 
 g(x) = 2.0
-Ug = TrialFESpace(V0,g)
+Ug = TrialFESpace(V0, g)
 
 # To this end, we have used the `TrialFESpace` constructors. Note that we have passed a function representing the value of the Dirichlet boundary condition, when building the trial space.
-#
+
 #
 # ## Numerical integration
 #
@@ -93,17 +94,18 @@ Ug = TrialFESpace(V0,g)
 
 degree = 2
 Ω = Triangulation(model)
-dΩ = Measure(Ω,degree)
+dΩ = Measure(Ω, degree)
 
 # Here, we build a triangulation from the cells of the model and build (an approximation of) the Lebesgue measure using a quadrature rule of degree 2 in the cells of this triangulation. This is enough for integrating the corresponding terms of the weak form exactly for an interpolation of order 1.
 #
 # On the other hand, we need a special type of triangulation, represented by the type `BoundaryTriangulation`, to integrate on the boundary. Essentially, a `BoundaryTriangulation` is a particular type of `Triangulation` that is aware of which cells in the model are touched by faces on the boundary. We build an instance of this type from the discrete model and the names used to identify the Neumann boundary as follows:
 
 neumanntags = ["circle", "triangle", "square"]
-Γ = BoundaryTriangulation(model,tags=neumanntags)
-dΓ = Measure(Γ,degree)
+Γ = BoundaryTriangulation(model, tags = neumanntags)
+dΓ = Measure(Γ, degree)
 
 # In addition, we have created a quadrature of degree 2 on top of the cells in the triangulation for the Neumann boundary.
+
 #
 # ## Weak form
 #
@@ -111,18 +113,20 @@ dΓ = Measure(Γ,degree)
 
 f(x) = 1.0
 h(x) = 3.0
-a(u,v) = ∫( ∇(v)⋅∇(u) )*dΩ
-b(v) = ∫( v*f )*dΩ + ∫( v*h )*dΓ
+a(u, v) = ∫(∇(v) ⋅ ∇(u)) * dΩ
+b(v) = ∫(v * f) * dΩ + ∫(v * h) * dΓ
 
 # Note that by using the integral function `∫`, the Lebesgue measures `dΩ`, `dΓ`, and the gradient function `∇`, the weak form is written with an obvious relation with the corresponding mathematical notation.
 
+#
 #  ## FE Problem
 #
 #  At this point, we can build the FE problem that, once solved, will provide the numerical solution we are looking for. A FE problem is represented in Gridap by types inheriting from the abstract type `FEOperator` (both for linear and nonlinear cases). Since we want to solve a linear problem, we use the concrete type `AffineFEOperator`, i.e., a problem represented by a matrix and a right hand side vector.
 
-op = AffineFEOperator(a,b,Ug,V0)
+op = AffineFEOperator(a, b, Ug, V0)
 
 # Note that the `AffineFEOperator` object representing our FE problem is built from the function `a` and `b` representing the weak form and test and trial FE spaces `V0` and `Ug`.
+
 #
 #  ## Solver phase
 #
@@ -133,15 +137,16 @@ solver = LinearFESolver(ls)
 
 #  `LinearFESolver` objects are built from a given algebraic linear solver. In this case, we use a LU factorization. Now we are ready to solve the FE problem with the FE solver as follows:
 
-uh = solve(solver,op)
+uh = solve(solver, op)
 
 # The `solve` function returns the computed numerical solution `uh`. This object is an instance of `FEFunction`, the type used to represent a function in a FE space. We can inspect the result by writing it into a `vtk` file:
 
-writevtk(Ω,"results",cellfields=["uh"=>uh])
+writevtk(Ω, "outputs/$(basename(@__FILE__))_results", cellfields = ["uh" => uh]);
 
 #  which will generate a file named `results.vtu` having a nodal field named `"uh"` containing the solution of our problem (see next figure).
 #
 # ![](../assets/poisson/fig_uh.png)
+
 #
 # ## References
 #

@@ -31,8 +31,8 @@ using Gridap.Visualization
 # We now create a computational domain on the unit square $[0,1]^2$ consisting
 # of 5 cells per direction
 
-domain = (0,1,0,1)
-partition = (5,5)
+domain = (0, 1, 0, 1)
+partition = (5, 5)
 𝒯₁ = CartesianDiscreteModel(domain, partition)
 
 
@@ -59,13 +59,13 @@ V₁ = FESpace(𝒯₁, reffe₁)
 
 # Finally to build the function $f_h$, we do
 
-fₕ = interpolate_everywhere(f,V₁)
+fₕ = interpolate_everywhere(f, V₁)
 
 # To construct arbitrary points in the domain, we use `Random` package:
 
 using Random
 pt = Point(rand(2))
-pts = [Point(rand(2)) for i in 1:3]
+pts = [Point(rand(2)) for i = 1:3]
 
 # The finite element function $f_h$ can be evaluated at arbitrary points (or
 # array of points) by
@@ -83,8 +83,8 @@ fₕ(pt), fₕ.(pts)
 # `CartesianDiscreteModel` to define the position of the vertices in
 # the new mesh.
 
-partition = (20,20)
-𝒯₂ = CartesianDiscreteModel(domain,partition)
+partition = (20, 20)
+𝒯₂ = CartesianDiscreteModel(domain, partition)
 
 # As before, we define the new `FESpace` consisting of second order
 # elements
@@ -113,7 +113,7 @@ ḡₕ = interpolate(ifₕ, V₂)
 # The finite element function $\bar{g}_h$ is the same as $g_h$ in this
 # example since all the dofs are free.
 
-@test gₕ.cell_dof_values ==  ḡₕ.cell_dof_values
+@test gₕ.cell_dof_values == ḡₕ.cell_dof_values
 
 # Now we obtain a finite element function using `interpolate_dirichlet`
 
@@ -131,8 +131,8 @@ g̃ₕ.cell_dof_values
 
 # We can visualize the results using Paraview
 
-writevtk(get_triangulation(fₕ), "source", cellfields=["fₕ"=>fₕ])
-writevtk(get_triangulation(gₕ), "target", cellfields=["gₕ"=>gₕ])
+writevtk(get_triangulation(fₕ), "outputs/$(basename(@__FILE__))_source", cellfields = ["fₕ" => fₕ]);
+writevtk(get_triangulation(gₕ), "outputs/$(basename(@__FILE__))_target", cellfields = ["gₕ" => gₕ]);
 
 # which produces the following output
 
@@ -186,7 +186,7 @@ gₕ = interpolate_everywhere(ifₕ, V₂)
 # triangulations. First, we define a vector-valued function on a
 # two-dimensional mesh.
 
-f(x) = VectorValue([x[1], x[1]+x[2]])
+f(x) = VectorValue([x[1], x[1] + x[2]])
 
 # We then create a vector-valued reference element containing linear
 # elements along with the source finite element space $V_1$.
@@ -218,7 +218,7 @@ gₕ = interpolate_everywhere(ifₕ, V₂)
 # functions. First, we define the components $h_1(x), h_2(x)$ of a
 # multi-field function $h(x)$ as follows.
 
-h₁(x) = x[1]+x[2]
+h₁(x) = x[1] + x[2]
 h₂(x) = x[1]
 
 # Next we create a Lagrangian finite element space containing linear
@@ -230,7 +230,7 @@ V₁ = FESpace(𝒯₁, reffe₁)
 # Next we create a `MultiFieldFESpace` $V_1 \times V_1$ and
 # interpolate the function $h(x)$ to the source space $V_1$.
 
-V₁xV₁ = MultiFieldFESpace([V₁,V₁])
+V₁xV₁ = MultiFieldFESpace([V₁, V₁])
 fₕ = interpolate_everywhere([h₁, h₂], V₁xV₁)
 
 # Similarly, the target multi-field finite element space is created
@@ -238,7 +238,7 @@ fₕ = interpolate_everywhere([h₁, h₂], V₁xV₁)
 
 reffe₂ = ReferenceFE(lagrangian, Float64, 2)
 V₂ = FESpace(𝒯₂, reffe₂)
-V₂xV₂ = MultiFieldFESpace([V₂,V₂])
+V₂xV₂ = MultiFieldFESpace([V₂, V₂])
 
 # Now, to find $g_h \in V_2 \times V_2$, we first extract the components of
 # $f_h$ and obtain the `Interpolable` version of the components.
@@ -251,7 +251,7 @@ ifₕ² = Interpolable(fₕ²)
 # version of the components and obtain $g_h \in V_2 \times V_2$ as
 # follows.
 
-gₕ = interpolate_everywhere([ifₕ¹,ifₕ²], V₂xV₂)
+gₕ = interpolate_everywhere([ifₕ¹, ifₕ²], V₂xV₂)
 
 # We can then check the results of the interpolation, component-wise.
 

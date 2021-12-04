@@ -42,10 +42,7 @@ import Gridap: ∇
 
 # We first group all parameters and parameter values in a single ditionary
 
-params = Dict(
-  "cells_per_axis" => [8,16,32,64],
-  "fe_order" => [1,2]
-)
+params = Dict("cells_per_axis" => [8, 16, 32, 64], "fe_order" => [1, 2])
 
 # and then we use DrWatson's `dict_list` to expand all the parameters into a vector of dictionaries. Each dictionary contains the parameter-value combinations corresponding to a single simulation case.
 
@@ -58,40 +55,40 @@ dicts = dict_list(params)
 # We define the manufactured function, as usual
 
 p = 3
-u(x) = x[1]^p+x[2]^p
-∇u(x) = VectorValue(p*x[1]^(p-1),p*x[2]^(p-1))
-f(x) = -p*(p-1)*(x[1]^(p-2)+x[2]^(p-2))
+u(x) = x[1]^p + x[2]^p
+∇u(x) = VectorValue(p * x[1]^(p - 1), p * x[2]^(p - 1))
+f(x) = -p * (p - 1) * (x[1]^(p - 2) + x[2]^(p - 2))
 ∇(::typeof(u)) = ∇u
 
 # And the function that runs a single case of our parametric space reads
 
-function run(n::Int,k::Int)
+function run(n::Int, k::Int)
 
-  domain = (0,1,0,1)
-  partition = (n,n)
-  model = CartesianDiscreteModel(domain,partition)
+    domain = (0, 1, 0, 1)
+    partition = (n, n)
+    model = CartesianDiscreteModel(domain, partition)
 
-  reffe = ReferenceFE(lagrangian,Float64,k)
-  V0 = TestFESpace(model,reffe,conformity=:H1,dirichlet_tags="boundary")
-  U = TrialFESpace(V0,u)
+    reffe = ReferenceFE(lagrangian, Float64, k)
+    V0 = TestFESpace(model, reffe, conformity = :H1, dirichlet_tags = "boundary")
+    U = TrialFESpace(V0, u)
 
-  degree = 2*p
-  Ω = Triangulation(model)
-  dΩ = Measure(Ω,degree)
+    degree = 2 * p
+    Ω = Triangulation(model)
+    dΩ = Measure(Ω, degree)
 
-  a(u,v) = ∫( ∇(u)⊙∇(v) ) * dΩ
-  b(v) = ∫( v*f ) * dΩ
+    a(u, v) = ∫(∇(u) ⊙ ∇(v)) * dΩ
+    b(v) = ∫(v * f) * dΩ
 
-  op = AffineFEOperator(a,b,U,V0)
+    op = AffineFEOperator(a, b, U, V0)
 
-  uh = solve(op)
+    uh = solve(op)
 
-  e = u - uh
+    e = u - uh
 
-  el2 = sqrt(sum( ∫( e*e )*dΩ ))
-  eh1 = sqrt(sum( ∫( e*e + ∇(e)⋅∇(e) )*dΩ ))
+    el2 = sqrt(sum(∫(e * e) * dΩ))
+    eh1 = sqrt(sum(∫(e * e + ∇(e) ⋅ ∇(e)) * dΩ))
 
-  (el2, eh1)
+    (el2, eh1)
 
 end
 
@@ -100,11 +97,11 @@ end
 # Note the use of functions [@unpack](https://juliadynamics.github.io/DrWatson.jl/dev/name/#UnPack.@unpack) and [@dict](https://juliadynamics.github.io/DrWatson.jl/dev/name/#DrWatson.@dict) to decompose and compose the dictionaries. You can check in `DrWatson.jl`'s documentation further functions to manipulate dictionaries.
 
 function run(case::Dict)
-  @unpack cells_per_axis, fe_order = case
-  el2, eh1 = run(cells_per_axis,fe_order)
-  h = 1.0/cells_per_axis
-  results = @strdict el2 eh1 h
-  merge(case,results)
+    @unpack cells_per_axis, fe_order = case
+    el2, eh1 = run(cells_per_axis, fe_order)
+    h = 1.0 / cells_per_axis
+    results = @strdict el2 eh1 h
+    merge(case, results)
 end
 
 # ## 3. Run and save
@@ -116,18 +113,18 @@ end
 # Thus, in order to run all simulation cases, it suffices to map all cases in `dicts` to the `produce_or_load` function:
 
 function run_or_load(case::Dict)
-  produce_or_load(
-    projectdir("assets","validation_DrWatson"),
-    case,
-    run,
-    prefix="res",
-    tag=true,
-    verbose=true
-  )
-  return true
+    produce_or_load(
+        projectdir("assets", "validation_DrWatson"),
+        case,
+        run,
+        prefix = "res",
+        tag = true,
+        verbose = true,
+    )
+    return true
 end
 
-map(run_or_load,dicts)
+map(run_or_load, dicts)
 
 # Note that the results of each case are stored in a binary database file in the `projectdir("assets","validation_DrWatson")` folder. Each result file stores the output dictionary that returns from `run(case)`.
 
@@ -143,16 +140,16 @@ using DataFrames
 
 # To collect all simulation results, it suffices to use the `collect_results!` function from `DrWatson.jl` from the folder where the results are stored.
 
-df = collect_results(projectdir("assets","validation_DrWatson"))
+df = collect_results(projectdir("assets", "validation_DrWatson"))
 
 # We order next the database by (ascending) mesh size and we extract the arrays of mesh sizes and errors
 
-sort!(df,:h)
-hs = df[(df.fe_order .== 1),:h]
-el2s1 = df[(df.fe_order .== 1),:el2]
-eh1s1 = df[(df.fe_order .== 1),:eh1]
-el2s2 = df[(df.fe_order .== 2),:el2]
-eh1s2 = df[(df.fe_order .== 2),:eh1]
+sort!(df, :h)
+hs = df[(df.fe_order.==1), :h]
+el2s1 = df[(df.fe_order.==1), :el2]
+eh1s1 = df[(df.fe_order.==1), :eh1]
+el2s2 = df[(df.fe_order.==2), :el2]
+eh1s2 = df[(df.fe_order.==2), :eh1]
 
 # ## 5. Generate the plot
 
@@ -160,11 +157,16 @@ eh1s2 = df[(df.fe_order .== 2),:eh1]
 
 using Plots
 
-plot(hs,[el2s1 eh1s1 el2s2 eh1s2],
-    xaxis=:log, yaxis=:log,
-    label=["L2 k=1" "H1 k=1" "L2 k=2" "H1 k=2"],
-    shape=:auto,
-    xlabel="h",ylabel="error norm")
+plot(
+    hs,
+    [el2s1 eh1s1 el2s2 eh1s2],
+    xaxis = :log,
+    yaxis = :log,
+    label = ["L2 k=1" "H1 k=1" "L2 k=2" "H1 k=2"],
+    shape = :auto,
+    xlabel = "h",
+    ylabel = "error norm",
+)
 
 #src savefig("conv.png")
 

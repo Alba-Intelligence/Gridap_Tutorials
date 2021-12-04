@@ -4,7 +4,7 @@ using GridapGmsh
 
 model = GmshDiscreteModel("elasticFlag.msh")
 
-writevtk(model,"elasticFlag")
+writevtk(model, "outputs/$(basename(@__FILE__))_elasticFlag");
 
 fn = "elasticFlag.json"
-to_json_file(model,fn)
+to_json_file(model, fn)
